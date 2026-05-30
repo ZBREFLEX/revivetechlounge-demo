@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, LogOut, Moon, Sun } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -11,14 +11,19 @@ import {
 } from '../ui/dropdown-menu'
 import { Input } from '../ui/input'
 import { useTheme } from '../../context/ThemeContext'
+import { supabase } from '../../lib/supabase'
 
 function Topbar() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const [user, setUser] = useState(null)
 
-  const handleLogout = () => {
-    // Clear auth from localStorage
-    localStorage.removeItem('auth')
+  useEffect(() => {
+    supabase?.auth.getUser().then(({ data }) => setUser(data.user))
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase?.auth.signOut()
     navigate('/login')
   }
 
@@ -58,14 +63,14 @@ function Topbar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-9 gap-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs font-bold">
-                AD
+                {(user?.email?.slice(0, 2) || 'US').toUpperCase()}
               </div>
-              <span className="hidden sm:inline text-sm">Admin</span>
+              <span className="hidden sm:inline text-sm">{user?.user_metadata?.full_name || 'User'}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem className="text-sm">
-              <span>admin@store.com</span>
+              <span>{user?.email || 'Signed in user'}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>

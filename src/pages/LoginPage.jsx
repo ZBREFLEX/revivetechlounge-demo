@@ -1,27 +1,57 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
+import { supabase, supabaseConfigError } from '../lib/supabase'
 
 function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('admin@store.com')
+  const location = useLocation()
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem('auth', JSON.stringify({ email, role: 'admin' }))
+    setError('')
+
+    if (!supabase) {
+      setError(supabaseConfigError)
       setLoading(false)
-      navigate('/dashboard')
-    }, 500)
+      return
+    }
+
+    const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (loginError) {
+      setError(loginError.message)
+      setLoading(false)
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('approved')
+      .eq('id', authData.user.id)
+      .single()
+
+    if (profileError || !profile?.approved) {
+      await supabase.auth.signOut()
+      setError('Your account is waiting for super admin approval.')
+      setLoading(false)
+      return
+    }
+
+    navigate('/dashboard')
   }
 
   return (
@@ -36,6 +66,12 @@ function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
+            {(error || location.state?.accessError) && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                {error || location.state.accessError}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -44,6 +80,7 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@store.com"
+                required
               />
             </div>
 
@@ -56,13 +93,16 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
+                  className="pr-10"
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -73,7 +113,9 @@ function LoginPage() {
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>Demo credentials: admin@store.com / password123</p>
+            <p>
+              Need an account? <a href="/register" className="text-primary hover:underline">Register here</a>
+            </p>
           </div>
         </CardContent>
       </Card>

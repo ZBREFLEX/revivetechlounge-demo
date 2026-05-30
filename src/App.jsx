@@ -14,18 +14,27 @@ import Shops from './pages/Shops'
 import Staff from './pages/Staff'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import SuperAdminRoute from './components/auth/SuperAdminRoute'
 
 function App() {
   return (
     <ThemeProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
-          <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="products" element={<Products />} />
             <Route path="products/add" element={<AddProduct />} />
@@ -34,7 +43,7 @@ function App() {
             <Route path="categories" element={<Categories />} />
             <Route path="brands" element={<Brands />} />
             <Route path="shops" element={<Shops />} />
-            <Route path="staff" element={<Staff />} />
+            <Route path="staff" element={<SuperAdminRoute><Staff /></SuperAdminRoute>} />
             <Route path="settings" element={<Settings />} />
           </Route>
           

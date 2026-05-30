@@ -4,13 +4,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select'
+import { supabase, supabaseConfigError } from '../lib/supabase'
 
 function RegisterPage() {
   const navigate = useNavigate()
@@ -18,20 +12,47 @@ function RegisterPage() {
     name: '',
     email: '',
     password: '',
-    role: 'staff',
-    shop: 'shop-1'
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    
-    setTimeout(() => {
-      localStorage.setItem('auth', JSON.stringify({ email: formData.email, role: formData.role }))
+    setError('')
+    setMessage('')
+
+    if (!supabase) {
+      setError(supabaseConfigError)
       setLoading(false)
+      return
+    }
+
+    const { data, error: registerError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.name,
+        },
+      },
+    })
+
+    if (registerError) {
+      setError(registerError.message)
+      setLoading(false)
+      return
+    }
+
+    setLoading(false)
+
+    if (data.session) {
       navigate('/dashboard')
-    }, 500)
+      return
+    }
+
+    setMessage('Account created. Confirm your email if required, then wait for super admin approval before signing in.')
   }
 
   const handleChange = (e) => {
@@ -47,6 +68,18 @@ function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm">
+                {message}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -80,33 +113,6 @@ function RegisterPage() {
                 onChange={handleChange}
                 placeholder="Create a password"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="shop">Assign Shop</Label>
-              <Select value={formData.shop} onValueChange={(value) => setFormData({ ...formData, shop: value })}>
-                <SelectTrigger id="shop">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="shop-1">Shop 1 - Downtown</SelectItem>
-                  <SelectItem value="shop-2">Shop 2 - Mall</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>

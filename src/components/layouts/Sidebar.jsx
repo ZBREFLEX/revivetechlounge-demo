@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { supabase } from '../../lib/supabase'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -21,13 +22,34 @@ const navItems = [
   { label: 'Categories', href: '/dashboard/categories', icon: Layers },
   { label: 'Brands', href: '/dashboard/brands', icon: Tag },
   { label: 'Shops', href: '/dashboard/shops', icon: Store },
-  { label: 'Staff', href: '/dashboard/staff', icon: Users },
+  { label: 'User Access', href: '/dashboard/staff', icon: Users, superAdminOnly: true },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
 function Sidebar() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      const { data: userData } = await supabase.auth.getUser()
+
+      if (!userData.user) {
+        return
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('role, approved')
+        .eq('id', userData.user.id)
+        .single()
+
+      setIsSuperAdmin(data?.role === 'super-admin' && data?.approved === true)
+    }
+
+    checkSuperAdmin()
+  }, [])
 
   const isActive = (href) => {
     return location.pathname === href || location.pathname.startsWith(href + '/')
@@ -73,7 +95,7 @@ function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-2">
-            {navItems.map((item) => {
+            {navItems.filter((item) => !item.superAdminOnly || isSuperAdmin).map((item) => {
               const Icon = item.icon
 
               return (
