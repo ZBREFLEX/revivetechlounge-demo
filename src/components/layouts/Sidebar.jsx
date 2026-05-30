@@ -30,6 +30,7 @@ function Sidebar() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [storeName, setStoreName] = useState('StoreAdmin')
 
   useEffect(() => {
     const checkSuperAdmin = async () => {
@@ -39,20 +40,26 @@ function Sidebar() {
         return
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('role, approved')
-        .eq('id', userData.user.id)
-        .single()
+      const [{ data }, { data: storeSettings }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('role, approved')
+          .eq('id', userData.user.id)
+          .single(),
+        supabase.rpc('get_store_settings'),
+      ])
 
       setIsSuperAdmin(data?.role === 'super-admin' && data?.approved === true)
+      setStoreName(storeSettings?.store_name || 'StoreAdmin')
     }
 
     checkSuperAdmin()
   }, [])
 
   const isActive = (href) => {
-    return location.pathname === href || location.pathname.startsWith(href + '/')
+    return href === '/dashboard'
+      ? location.pathname === href
+      : location.pathname === href || location.pathname.startsWith(href + '/')
   }
 
   return (
@@ -88,7 +95,7 @@ function Sidebar() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">SA</span>
             </div>
-            <span className="font-bold text-lg">StoreAdmin</span>
+            <span className="font-bold text-lg truncate">{storeName}</span>
           </Link>
         </div>
 

@@ -44,5 +44,49 @@ Run `supabase/setup-shops.sql` in the Supabase SQL Editor once. It creates the
 shops table, adds the two starter shops, and installs the secured functions used
 by the **Shops** dashboard page.
 
+## Set up products
+
+After setting up shops, run `supabase/setup-products.sql` in the Supabase SQL
+Editor once. It creates the product catalog, starter categories and brands, and
+the secured functions used by the **Products** dashboard pages. It also creates
+the `product-images` Storage bucket so product editors can either paste an image
+URL or upload a local image file up to 5 MB.
+
+If local image uploads fail because the Storage bucket is missing, run
+`supabase/setup-product-images.sql` after `supabase/setup-products.sql`.
+
+## Set up inventory
+
+After setting up products, run `supabase/setup-inventory.sql` in the Supabase SQL
+Editor once. It installs the live stock list, secured stock adjustments, and an
+inventory movement history table used by the **Inventory** dashboard page.
+
+## Set up categories
+
+After setting up products, run `supabase/setup-categories.sql` in the Supabase
+SQL Editor once. It installs the secured functions used by the **Categories**
+dashboard page. Categories that are still used by products cannot be deleted.
+
+## Set up brands
+
+After setting up products, run `supabase/setup-brands.sql` in the Supabase SQL
+Editor once. It installs the secured functions used by the **Brands** dashboard
+page. Brands that are still assigned to products cannot be deleted.
+
+## Set up dashboard
+
+After setting up products, inventory, and settings, run
+`supabase/setup-dashboard.sql` in the Supabase SQL Editor once. It installs the
+live summary used by the main **Dashboard** page, including inventory alerts and
+recent stock activity.
+
+## Set up settings
+
+Run `supabase/setup-settings.sql` in the Supabase SQL Editor once. It creates the
+shared store settings used by the **Settings** page. Only a super admin can
+change shared store details, currency, and the low-stock threshold. Run the
+latest `supabase/setup-dashboard.sql` again afterward so the dashboard uses the
+saved threshold.
+
 For local testing, either confirm the signup email or temporarily disable
 **Authentication > Providers > Email > Confirm email** in the Supabase dashboard.
