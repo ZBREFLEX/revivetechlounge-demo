@@ -27,14 +27,90 @@ const emptyForm = {
   image_url: '',
 }
 
+const formatKilobytes = (bytes) => `${Math.ceil(bytes / 1024)} KB`
+
+const loadImage = (file) => new Promise((resolve, reject) => {
+  const image = new Image()
+  const objectUrl = URL.createObjectURL(file)
+
+  image.onload = () => {
+    URL.revokeObjectURL(objectUrl)
+    resolve(image)
+  }
+  image.onerror = () => {
+    URL.revokeObjectURL(objectUrl)
+    reject(new Error('The selected image could not be opened.'))
+  }
+  image.src = objectUrl
+})
+
+const canvasToBlob = (canvas, type, quality) => new Promise((resolve, reject) => {
+  canvas.toBlob((blob) => {
+    if (blob) {
+      resolve(blob)
+    } else {
+      reject(new Error('The selected image could not be converted.'))
+    }
+  }, type, quality)
+})
+
+const compressImage = async (file, targetKb) => {
+  const targetBytes = targetKb * 1024
+
+  if (file.size <= targetBytes) {
+    return file
+  }
+
+  const image = await loadImage(file)
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  const largestSide = Math.max(image.width, image.height)
+  let scale = Math.min(1, 1600 / largestSide)
+  let quality = 0.9
+  let smallestBlob = file
+
+  for (let attempt = 0; attempt < 14; attempt += 1) {
+    canvas.width = Math.max(1, Math.round(image.width * scale))
+    canvas.height = Math.max(1, Math.round(image.height * scale))
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+    const blob = await canvasToBlob(canvas, file.type, quality)
+
+    if (blob.size < smallestBlob.size) {
+      smallestBlob = blob
+    }
+
+    if (blob.size <= targetBytes) {
+      smallestBlob = blob
+      break
+    }
+
+    if (file.type === 'image/jpeg' && quality > 0.5) {
+      quality -= 0.1
+    } else {
+      scale *= 0.82
+      quality = 0.9
+    }
+  }
+
+  return new File([smallestBlob], file.name, {
+    type: file.type,
+    lastModified: Date.now(),
+  })
+}
+
 function ProductEditor({ productId = null }) {
   const navigate = useNavigate()
   const [form, setForm] = useState(emptyForm)
   const [options, setOptions] = useState({ categories: [], brands: [], shops: [] })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const [originalImageFile, setOriginalImageFile] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
+  const [targetImageKb, setTargetImageKb] = useState('300')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -97,23 +173,58 @@ function ProductEditor({ productId = null }) {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  const chooseImageFile = (event) => {
+  const convertSelectedImage = async (file = originalImageFile) => {
+    const targetKb = Number(targetImageKb)
+
+    if (!file) {
+      return
+    }
+
+    if (!Number.isInteger(targetKb) || targetKb < 50 || targetKb > 5000) {
+      setError('Target image size must be between 50 KB and 5000 KB.')
+      return
+    }
+
+    setConverting(true)
+    setError('')
+
+    try {
+      const convertedFile = await compressImage(file, targetKb)
+
+      if (convertedFile.size > 5 * 1024 * 1024) {
+        throw new Error('The converted image is still larger than 5 MB. Choose a smaller KB target.')
+      }
+
+      setImageFile(convertedFile)
+    } catch (conversionError) {
+      setError(conversionError.message)
+    }
+
+    setConverting(false)
+  }
+
+  const chooseImageFile = async (event) => {
     const file = event.target.files?.[0] || null
 
-    if (file && !file.type.startsWith('image/')) {
-      setError('Choose an image file.')
+    if (file && !['image/jpeg', 'image/png'].includes(file.type)) {
+      setError('Choose a JPG or PNG image.')
       event.target.value = ''
       return
     }
 
-    if (file && file.size > 5 * 1024 * 1024) {
-      setError('The image must be 5 MB or smaller.')
+    if (file && file.size > 15 * 1024 * 1024) {
+      setError('The original image must be 15 MB or smaller.')
       event.target.value = ''
       return
     }
 
     setError('')
-    setImageFile(file)
+    setOriginalImageFile(file)
+    setImageFile(null)
+
+    if (file) {
+      await convertSelectedImage(file)
+    }
   }
 
   const uploadImage = async () => {
@@ -218,14 +329,30 @@ function ProductEditor({ productId = null }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="imageFile">Or upload an image from this device</Label>
-                <Input id="imageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseImageFile} />
-                <p className="text-xs text-muted-foreground">A selected local image overrides the URL when you save. Maximum size: 5 MB.</p>
+                <Input id="imageFile" type="file" accept="image/jpeg,image/png" onChange={chooseImageFile} />
+                <p className="text-xs text-muted-foreground">Choose a JPG or PNG image. A selected local image overrides the URL when you save.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetImageKb">Convert image to approximately</Label>
+                <div className="flex gap-2">
+                  <Input id="targetImageKb" type="number" min="50" max="5000" step="10" value={targetImageKb} onChange={(event) => setTargetImageKb(event.target.value)} />
+                  <span className="flex items-center text-sm text-muted-foreground">KB</span>
+                  <Button type="button" variant="outline" onClick={() => convertSelectedImage()} disabled={!originalImageFile || converting}>
+                    {converting ? 'Converting...' : 'Convert'}
+                  </Button>
+                </div>
+                {originalImageFile && (
+                  <p className="text-xs text-muted-foreground">
+                    Original: {formatKilobytes(originalImageFile.size)}
+                    {imageFile && ` | Ready to upload: ${formatKilobytes(imageFile.size)}`}
+                  </p>
+                )}
               </div>
             </div>
             {(imagePreview || form.image_url) && <img src={imagePreview || form.image_url} alt="Product preview" className="w-full h-40 rounded object-cover border" />}
           </div>
           <div className="flex gap-4">
-            <Button type="submit" disabled={saving}>{saving ? 'Saving...' : productId ? 'Update Product' : 'Save Product'}</Button>
+            <Button type="submit" disabled={saving || converting}>{saving ? 'Saving...' : productId ? 'Update Product' : 'Save Product'}</Button>
             <Button type="button" variant="outline" onClick={() => navigate('/dashboard/products')}>Cancel</Button>
           </div>
         </form>

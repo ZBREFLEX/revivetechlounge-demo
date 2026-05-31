@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import AddProduct from './pages/AddProduct'
 import EditProduct from './pages/EditProduct'
+import ProductPreview from './pages/ProductPreview'
 import Inventory from './pages/Inventory'
 import Categories from './pages/Categories'
 import Brands from './pages/Brands'
@@ -39,6 +40,7 @@ function App() {
             <Route path="products" element={<Products />} />
             <Route path="products/add" element={<AddProduct />} />
             <Route path="products/:id/edit" element={<EditProduct />} />
+            <Route path="products/:id/preview" element={<ProductPreview />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="categories" element={<Categories />} />
             <Route path="brands" element={<Brands />} />

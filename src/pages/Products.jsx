@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Edit, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -199,6 +199,7 @@ function Products() {
                     {canManage && (
                       <TableCell>
                         <div className="flex gap-2">
+                          <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/preview`)} aria-label={`Preview ${product.name}`}><Eye className="w-4 h-4" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/edit`)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteProduct(product)}><Trash2 className="w-4 h-4" /></Button>
                         </div>
