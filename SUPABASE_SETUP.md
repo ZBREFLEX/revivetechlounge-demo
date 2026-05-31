@@ -88,5 +88,8 @@ change shared store details, currency, and the low-stock threshold. Run the
 latest `supabase/setup-dashboard.sql` again afterward so the dashboard uses the
 saved threshold.
 
+To update an existing installation to the REVIVETECHLOUNGE name, run
+`supabase/update-branding.sql` once.
+
 For local testing, either confirm the signup email or temporarily disable
 **Authentication > Providers > Email > Confirm email** in the Supabase dashboard.

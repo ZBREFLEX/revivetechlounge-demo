@@ -9,7 +9,7 @@ function ProductPreview() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
-  const [settings, setSettings] = useState({ currency: 'INR', store_name: 'StoreAdmin' })
+  const [settings, setSettings] = useState({ currency: 'INR', store_name: 'REVIVETECHLOUNGE' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 

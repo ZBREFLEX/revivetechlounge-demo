@@ -17,7 +17,7 @@ insert into public.store_settings (
 )
 values (
   true,
-  'StoreAdmin',
+  'REVIVETECHLOUNGE',
   'Your trusted destination for mobile phones and custom PC builds',
   'INR',
   5

@@ -64,7 +64,7 @@ function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Join the Store Admin team</CardDescription>
+          <CardDescription>Join the REVIVETECHLOUNGE team</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

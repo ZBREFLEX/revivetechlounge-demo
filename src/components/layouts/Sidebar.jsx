@@ -30,7 +30,7 @@ function Sidebar() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  const [storeName, setStoreName] = useState('StoreAdmin')
+  const [storeName, setStoreName] = useState('REVIVETECHLOUNGE')
 
   useEffect(() => {
     const checkSuperAdmin = async () => {
@@ -50,7 +50,7 @@ function Sidebar() {
       ])
 
       setIsSuperAdmin(data?.role === 'super-admin' && data?.approved === true)
-      setStoreName(storeSettings?.store_name || 'StoreAdmin')
+      setStoreName(storeSettings?.store_name || 'REVIVETECHLOUNGE')
     }
 
     checkSuperAdmin()
@@ -93,7 +93,7 @@ function Sidebar() {
         <div className="p-6 border-b border-border">
           <Link to="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">SA</span>
+              <span className="text-primary-foreground font-bold text-xs">RTL</span>
             </div>
             <span className="font-bold text-lg truncate">{storeName}</span>
           </Link>
@@ -129,8 +129,8 @@ function Sidebar() {
         {/* Footer */}
         <div className="border-t border-border p-4">
           <div className="text-xs text-muted-foreground text-center">
-            <p>Store Admin v1.0</p>
-            <p>© 2024 All rights reserved</p>
+            <p>REVIVETECHLOUNGE v1.0</p>
+            <p>Copyright 2026. All rights reserved.</p>
           </div>
         </div>
       </div>
