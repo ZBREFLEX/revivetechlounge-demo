@@ -11,9 +11,10 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists email text;
 alter table public.profiles add column if not exists approved boolean not null default false;
 alter table public.profiles drop constraint if exists profiles_role_check;
+update public.profiles set role = 'stock-manager' where role = 'manager';
 alter table public.profiles
   add constraint profiles_role_check
-  check (role in ('super-admin', 'admin', 'manager', 'staff'));
+  check (role in ('super-admin', 'admin', 'stock-manager', 'staff'));
 
 insert into public.profiles (id, email, full_name)
 select
@@ -114,7 +115,7 @@ begin
     raise exception 'You cannot change your own access';
   end if;
 
-  if target_role not in ('super-admin', 'admin', 'manager', 'staff') then
+  if target_role not in ('super-admin', 'admin', 'stock-manager', 'staff') then
     raise exception 'Invalid role';
   end if;
 
@@ -132,6 +133,28 @@ $$;
 
 revoke all on function public.update_user_access(uuid, text, text, boolean) from public;
 grant execute on function public.update_user_access(uuid, text, text, boolean) to authenticated;
+
+create or replace function public.delete_user_access(target_user_id uuid)
+returns void
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  if not (select public.is_super_admin()) then
+    raise exception 'Only a super admin can delete user accounts';
+  end if;
+
+  if target_user_id = (select auth.uid()) then
+    raise exception 'You cannot delete your own account';
+  end if;
+
+  delete from auth.users
+  where id = target_user_id;
+end;
+$$;
+
+revoke all on function public.delete_user_access(uuid) from public;
+grant execute on function public.delete_user_access(uuid) to authenticated;
 
 create or replace function public.handle_new_user()
 returns trigger

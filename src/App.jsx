@@ -14,6 +14,7 @@ import Brands from './pages/Brands'
 import Shops from './pages/Shops'
 import Staff from './pages/Staff'
 import Settings from './pages/Settings'
+import Customers from './pages/Customers'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import SuperAdminRoute from './components/auth/SuperAdminRoute'
@@ -46,6 +47,7 @@ function App() {
             <Route path="brands" element={<Brands />} />
             <Route path="shops" element={<Shops />} />
             <Route path="staff" element={<SuperAdminRoute><Staff /></SuperAdminRoute>} />
+            <Route path="customers" element={<Customers />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           

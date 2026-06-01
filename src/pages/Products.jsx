@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Edit, Eye, Plus, RefreshCw, ShoppingCart, Trash2 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 import {
   Select,
   SelectContent,
@@ -19,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table'
+import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
 
 function Products() {
@@ -26,6 +36,7 @@ function Products() {
   const [products, setProducts] = useState([])
   const [options, setOptions] = useState({ categories: [], shops: [] })
   const [canManage, setCanManage] = useState(false)
+  const [canRecordSale, setCanRecordSale] = useState(false)
   const [lowStockLevel, setLowStockLevel] = useState(5)
   const [currency, setCurrency] = useState('INR')
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,15 +46,22 @@ function Products() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [saleProduct, setSaleProduct] = useState(null)
+  const [saleDialogOpen, setSaleDialogOpen] = useState(false)
+  const [savingSale, setSavingSale] = useState(false)
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
 
   const loadProducts = async () => {
     setLoading(true)
     setError('')
 
-    const [{ data, error: productError }, { data: optionData }, { data: manageAccess }, { data: storeSettings }] = await Promise.all([
+    const [{ data, error: productError }, { data: optionData }, { data: manageAccess }, { data: saleAccess }, { data: storeSettings }] = await Promise.all([
       supabase.rpc('list_products'),
       supabase.rpc('list_product_options'),
       supabase.rpc('can_manage_products'),
+      supabase.rpc('can_record_sales'),
       supabase.rpc('get_store_settings'),
     ])
 
@@ -55,6 +73,7 @@ function Products() {
 
     setOptions(optionData || { categories: [], shops: [] })
     setCanManage(manageAccess === true)
+    setCanRecordSale(saleAccess === true)
     setLowStockLevel(storeSettings?.low_stock_threshold || 5)
     setCurrency(storeSettings?.currency || 'INR')
     setLoading(false)
@@ -82,6 +101,38 @@ function Products() {
       setMessage('Product deleted.')
       await loadProducts()
     }
+  }
+
+  const openSaleDialog = (product) => {
+    setSaleProduct(product)
+    setCustomerName('')
+    setCustomerPhone('')
+    setCustomerNote('')
+    setSaleDialogOpen(true)
+  }
+
+  const recordSale = async (event) => {
+    event.preventDefault()
+    setSavingSale(true)
+    setError('')
+    setMessage('')
+
+    const { error: saleError } = await supabase.rpc('record_product_sale', {
+      target_product_id: saleProduct.id,
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim(),
+      customer_note: customerNote.trim(),
+    })
+
+    if (saleError) {
+      setError(saleError.message)
+    } else {
+      setMessage(`One ${saleProduct.name} marked as sold out.`)
+      setSaleDialogOpen(false)
+      await loadProducts()
+    }
+
+    setSavingSale(false)
   }
 
   const filtered = products.filter((product) => {
@@ -177,12 +228,12 @@ function Products() {
                   <TableHead>Stock</TableHead>
                   <TableHead>Shop</TableHead>
                   <TableHead>Status</TableHead>
-                  {canManage && <TableHead>Actions</TableHead>}
+                  {(canManage || canRecordSale) && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={canManage ? 9 : 8} className="py-8 text-center text-muted-foreground">No products found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={canManage || canRecordSale ? 9 : 8} className="py-8 text-center text-muted-foreground">No products found.</TableCell></TableRow>
                 )}
                 {filtered.map((product) => (
                   <TableRow key={product.id}>
@@ -196,12 +247,13 @@ function Products() {
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>{product.shop_name}</TableCell>
                     <TableCell className={getStatusColor(product.stock)}>{product.stock < lowStockLevel ? 'Low' : product.stock <= 20 ? 'Medium' : 'High'}</TableCell>
-                    {canManage && (
+                    {(canManage || canRecordSale) && (
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/preview`)} aria-label={`Preview ${product.name}`}><Eye className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/edit`)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteProduct(product)}><Trash2 className="w-4 h-4" /></Button>
+                          {canManage && <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/preview`)} aria-label={`Preview ${product.name}`}><Eye className="w-4 h-4" /></Button>}
+                          {canManage && <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/edit`)}><Edit className="w-4 h-4" /></Button>}
+                          {canManage && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteProduct(product)}><Trash2 className="w-4 h-4" /></Button>}
+                          {canRecordSale && <Button size="sm" variant="outline" onClick={() => openSaleDialog(product)} disabled={product.stock === 0}><ShoppingCart className="w-4 h-4" /> Sold Out</Button>}
                         </div>
                       </TableCell>
                     )}
@@ -212,6 +264,35 @@ function Products() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={saleDialogOpen} onOpenChange={setSaleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Sold Product</DialogTitle>
+            <DialogDescription>
+              Enter the customer details before marking one {saleProduct?.name} as sold out.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={recordSale} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerName">Customer Name</Label>
+              <Input id="customerName" value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerPhone">Customer Phone</Label>
+              <Input id="customerPhone" type="tel" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerNote">Address or Note</Label>
+              <Textarea id="customerNote" value={customerNote} onChange={(event) => setCustomerNote(event.target.value)} placeholder="Optional address, invoice number, or note" rows={3} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setSaleDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={savingSale}>{savingSale ? 'Saving...' : 'Confirm Sold Out'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

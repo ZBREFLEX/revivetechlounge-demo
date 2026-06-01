@@ -264,13 +264,14 @@ function Inventory() {
                   <TableHead>Change</TableHead>
                   <TableHead>Stock</TableHead>
                   <TableHead>Note</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Updated By</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {movements.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No stock adjustments recorded yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">No stock adjustments recorded yet.</TableCell></TableRow>
                 )}
                 {movements.map((movement) => (
                   <TableRow key={movement.id}>
@@ -278,6 +279,7 @@ function Inventory() {
                     <TableCell className={movement.quantity_change > 0 ? 'text-green-600' : 'text-red-600'}>{movement.quantity_change > 0 ? '+' : ''}{movement.quantity_change}</TableCell>
                     <TableCell>{movement.stock_before} to {movement.stock_after}</TableCell>
                     <TableCell>{movement.note || '-'}</TableCell>
+                    <TableCell>{movement.customer_name ? <><p>{movement.customer_name}</p><p className="text-xs text-muted-foreground">{movement.customer_phone}</p>{movement.customer_note && <p className="text-xs text-muted-foreground">{movement.customer_note}</p>}</> : '-'}</TableCell>
                     <TableCell>{movement.updated_by || 'Unknown user'}</TableCell>
                     <TableCell>{new Date(movement.created_at).toLocaleString()}</TableCell>
                   </TableRow>

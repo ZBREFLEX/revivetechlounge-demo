@@ -1,3 +1,47 @@
+alter table public.inventory_movements add column if not exists customer_name text;
+alter table public.inventory_movements add column if not exists customer_phone text;
+alter table public.inventory_movements add column if not exists customer_note text;
+
+create or replace function public.list_customer_sales()
+returns table (
+  id uuid,
+  customer_name text,
+  customer_phone text,
+  customer_note text,
+  product_name text,
+  sku text,
+  recorded_by text,
+  created_at timestamptz
+)
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  if not ((select public.can_manage_products()) or (select public.can_record_sales())) then
+    raise exception 'You do not have permission to view customer sales';
+  end if;
+
+  return query
+  select
+    movement.id,
+    movement.customer_name,
+    movement.customer_phone,
+    movement.customer_note,
+    product.name,
+    product.sku,
+    coalesce(profile.full_name, profile.email),
+    movement.created_at
+  from public.inventory_movements as movement
+  join public.products as product on product.id = movement.product_id
+  left join public.profiles as profile on profile.id = movement.created_by
+  where movement.customer_name is not null
+  order by movement.created_at desc;
+end;
+$$;
+
+revoke all on function public.list_customer_sales() from public;
+grant execute on function public.list_customer_sales() to authenticated;
+
 create or replace function public.get_dashboard_summary()
 returns jsonb
 language plpgsql
@@ -21,6 +65,15 @@ begin
       'inventory_updates', (select count(*) from public.inventory_movements),
       'total_sales', (select count(*) from public.inventory_movements where customer_name is not null)
     ),
+    'category_data', (
+      select coalesce(jsonb_agg(category_summary order by category_summary.name), '[]'::jsonb)
+      from (
+        select category.name, count(product.id) as count
+        from public.categories as category
+        left join public.products as product on product.category_id = category.id
+        group by category.id, category.name
+      ) as category_summary
+    ),
     'sales_data', (
       select coalesce(jsonb_agg(sale_day order by sale_day.sales_date), '[]'::jsonb)
       from (
@@ -34,15 +87,6 @@ begin
           and movement.customer_name is not null
         group by day.series_date
       ) as sale_day
-    ),
-    'category_data', (
-      select coalesce(jsonb_agg(category_summary order by category_summary.name), '[]'::jsonb)
-      from (
-        select category.name, count(product.id) as count
-        from public.categories as category
-        left join public.products as product on product.category_id = category.id
-        group by category.id, category.name
-      ) as category_summary
     ),
     'low_stock_products', (
       select coalesce(jsonb_agg(low_stock order by low_stock.stock, low_stock.name), '[]'::jsonb)

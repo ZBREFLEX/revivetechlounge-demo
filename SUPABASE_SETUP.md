@@ -91,5 +91,26 @@ saved threshold.
 To update an existing installation to the REVIVETECHLOUNGE name, run
 `supabase/update-branding.sql` once.
 
+## Set up stock manager role
+
+Run `supabase/setup-stock-manager-role.sql` once to replace the old `manager`
+role with `stock-manager`. Stock managers can add, edit, and delete products and
+adjust stock. Approved staff can only use **Sold Out** on the Products page,
+which asks for the customer's name, phone, and an optional note before removing
+one unit and recording the sale in inventory history.
+
+## Set up sales reporting
+
+After setting up the stock manager role, run `supabase/setup-sales-reporting.sql`
+once. It adds the seven-day sales line graph to the Dashboard and the protected
+**Customers** page for approved staff, admins, and stock managers.
+
+## Set up user deletion and staff customer access
+
+Run `supabase/setup-user-delete-and-staff-customers.sql` once. It adds the
+super-admin **Delete** action on the **User Access** page and allows approved
+staff to open the **Customers** page. Deleted staff accounts are removed while
+their older sales records remain available.
+
 For local testing, either confirm the signup email or temporarily disable
 **Authentication > Providers > Email > Confirm email** in the Supabase dashboard.

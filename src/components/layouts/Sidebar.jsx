@@ -9,6 +9,7 @@ import {
   Store,
   Users,
   Settings,
+  ContactRound,
   Menu,
   X,
 } from 'lucide-react'
@@ -22,6 +23,7 @@ const navItems = [
   { label: 'Categories', href: '/dashboard/categories', icon: Layers },
   { label: 'Brands', href: '/dashboard/brands', icon: Tag },
   { label: 'Shops', href: '/dashboard/shops', icon: Store },
+  { label: 'Customers', href: '/dashboard/customers', icon: ContactRound, customersOnly: true },
   { label: 'User Access', href: '/dashboard/staff', icon: Users, superAdminOnly: true },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
@@ -30,6 +32,7 @@ function Sidebar() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [canViewCustomers, setCanViewCustomers] = useState(false)
   const [storeName, setStoreName] = useState('REVIVETECHLOUNGE')
 
   useEffect(() => {
@@ -40,16 +43,19 @@ function Sidebar() {
         return
       }
 
-      const [{ data }, { data: storeSettings }] = await Promise.all([
+      const [{ data }, { data: storeSettings }, { data: manageAccess }, { data: saleAccess }] = await Promise.all([
         supabase
           .from('profiles')
           .select('role, approved')
           .eq('id', userData.user.id)
           .single(),
         supabase.rpc('get_store_settings'),
+        supabase.rpc('can_manage_products'),
+        supabase.rpc('can_record_sales'),
       ])
 
       setIsSuperAdmin(data?.role === 'super-admin' && data?.approved === true)
+      setCanViewCustomers(manageAccess === true || saleAccess === true)
       setStoreName(storeSettings?.store_name || 'REVIVETECHLOUNGE')
     }
 
@@ -102,7 +108,7 @@ function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-2">
-            {navItems.filter((item) => !item.superAdminOnly || isSuperAdmin).map((item) => {
+            {navItems.filter((item) => (!item.superAdminOnly || isSuperAdmin) && (!item.customersOnly || canViewCustomers)).map((item) => {
               const Icon = item.icon
 
               return (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import {
@@ -18,6 +18,7 @@ const emptyDashboard = {
   category_data: [],
   low_stock_products: [],
   recent_movements: [],
+  sales_data: [],
 }
 
 function Dashboard() {
@@ -119,9 +120,28 @@ function Dashboard() {
               <p className="text-sm text-muted-foreground">Inventory Updates</p>
               <p className="text-3xl font-bold">{loading ? '-' : dashboard.stats.inventory_updates || 0}</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Recorded Sales</p>
+              <p className="text-3xl font-bold">{loading ? '-' : dashboard.stats.total_sales || 0}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Sales - Last 7 Days</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={dashboard.sales_data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Line type="monotone" dataKey="sales" stroke="#16a34a" strokeWidth={3} name="Sold Products" />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

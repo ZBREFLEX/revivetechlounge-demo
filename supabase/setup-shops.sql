@@ -112,7 +112,7 @@ begin
     raise exception 'You cannot change your own access';
   end if;
 
-  if target_role not in ('super-admin', 'admin', 'manager', 'staff') then
+  if target_role not in ('super-admin', 'admin', 'stock-manager', 'staff') then
     raise exception 'Invalid role';
   end if;
 

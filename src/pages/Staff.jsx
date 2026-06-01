@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, RefreshCw, ShieldCheck, UserRoundCheck, Users } from 'lucide-react'
+import { CheckCircle2, RefreshCw, ShieldCheck, Trash2, UserRoundCheck, Users } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
 import {
@@ -21,7 +21,7 @@ import { supabase } from '../lib/supabase'
 
 const roles = [
   { value: 'staff', label: 'Staff' },
-  { value: 'manager', label: 'Manager' },
+  { value: 'stock-manager', label: 'Stock Manager' },
   { value: 'admin', label: 'Admin' },
   { value: 'super-admin', label: 'Super Admin' },
 ]
@@ -90,6 +90,29 @@ function Staff() {
       setError(updateError.message)
     } else {
       setMessage(`Access updated for ${profile.email || profile.full_name || 'user'}.`)
+      await loadProfiles()
+    }
+
+    setSavingId('')
+  }
+
+  const deleteProfile = async (profile) => {
+    if (!window.confirm(`Delete the account for ${profile.email || profile.full_name || 'this user'}?`)) {
+      return
+    }
+
+    setSavingId(profile.id)
+    setError('')
+    setMessage('')
+
+    const { error: deleteError } = await supabase.rpc('delete_user_access', {
+      target_user_id: profile.id,
+    })
+
+    if (deleteError) {
+      setError(deleteError.message)
+    } else {
+      setMessage(`Account deleted for ${profile.email || profile.full_name || 'user'}.`)
       await loadProfiles()
     }
 
@@ -208,6 +231,9 @@ function Staff() {
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => saveProfile(profile)} disabled={savingId === profile.id}>
                               <CheckCircle2 className="w-4 h-4" /> Save
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteProfile(profile)} disabled={savingId === profile.id}>
+                              <Trash2 className="w-4 h-4" /> Delete
                             </Button>
                           </div>
                         )}

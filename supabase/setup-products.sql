@@ -71,7 +71,7 @@ as $$
     from public.profiles
     where id = (select auth.uid())
       and approved = true
-      and role in ('super-admin', 'admin', 'manager')
+      and role in ('super-admin', 'admin', 'stock-manager')
   );
 $$;
 
@@ -81,8 +81,11 @@ grant execute on function public.can_manage_products() to authenticated;
 drop policy if exists "Product managers can upload images" on storage.objects;
 drop policy if exists "Product managers can update images" on storage.objects;
 drop policy if exists "Product managers can delete images" on storage.objects;
+drop policy if exists "Stock managers can upload images" on storage.objects;
+drop policy if exists "Stock managers can update images" on storage.objects;
+drop policy if exists "Stock managers can delete images" on storage.objects;
 
-create policy "Product managers can upload images"
+create policy "Stock managers can upload images"
   on storage.objects for insert
   to authenticated
   with check (
@@ -90,7 +93,7 @@ create policy "Product managers can upload images"
     and (select public.can_manage_products())
   );
 
-create policy "Product managers can update images"
+create policy "Stock managers can update images"
   on storage.objects for update
   to authenticated
   using (
@@ -102,7 +105,7 @@ create policy "Product managers can update images"
     and (select public.can_manage_products())
   );
 
-create policy "Product managers can delete images"
+create policy "Stock managers can delete images"
   on storage.objects for delete
   to authenticated
   using (
