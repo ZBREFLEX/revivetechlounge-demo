@@ -48,6 +48,7 @@ begin
     shop.name
   from public.products as product
   join public.shops as shop on shop.id = product.shop_id
+  where (select public.can_access_shop(product.shop_id))
   order by product.name;
 end;
 $$;
@@ -97,6 +98,7 @@ begin
   from public.inventory_movements as movement
   join public.products as product on product.id = movement.product_id
   left join public.profiles as profile on profile.id = movement.created_by
+  where (select public.can_access_shop(product.shop_id))
   order by movement.created_at desc
   limit 20;
 end;
@@ -148,6 +150,7 @@ begin
   into current_stock
   from public.products as product
   where product.id = target_product_id
+    and (select public.can_manage_shop(product.shop_id))
   for update;
 
   if current_stock is null then
@@ -217,6 +220,7 @@ begin
   into current_stock
   from public.products as product
   where product.id = target_product_id
+    and (select public.can_sell_shop(product.shop_id))
   for update;
 
   if current_stock is null then

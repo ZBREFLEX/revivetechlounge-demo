@@ -78,6 +78,66 @@ $$;
 revoke all on function public.can_manage_products() from public;
 grant execute on function public.can_manage_products() to authenticated;
 
+create or replace function public.can_access_shop(target_shop_id text)
+returns boolean
+language sql
+stable
+security definer set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = (select auth.uid())
+      and approved = true
+      and (
+        role in ('super-admin', 'admin', 'stock-manager', 'staff')
+      )
+  );
+$$;
+
+revoke all on function public.can_access_shop(text) from public;
+grant execute on function public.can_access_shop(text) to authenticated;
+
+create or replace function public.can_manage_shop(target_shop_id text)
+returns boolean
+language sql
+stable
+security definer set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = (select auth.uid())
+      and approved = true
+      and (
+        role in ('super-admin', 'admin')
+        or (role = 'stock-manager' and shop = target_shop_id)
+      )
+  );
+$$;
+
+revoke all on function public.can_manage_shop(text) from public;
+grant execute on function public.can_manage_shop(text) to authenticated;
+
+create or replace function public.can_sell_shop(target_shop_id text)
+returns boolean
+language sql
+stable
+security definer set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = (select auth.uid())
+      and approved = true
+      and role = 'staff'
+      and shop = target_shop_id
+  );
+$$;
+
+revoke all on function public.can_sell_shop(text) from public;
+grant execute on function public.can_sell_shop(text) to authenticated;
+
 drop policy if exists "Product managers can upload images" on storage.objects;
 drop policy if exists "Product managers can update images" on storage.objects;
 drop policy if exists "Product managers can delete images" on storage.objects;
@@ -126,7 +186,7 @@ begin
   return jsonb_build_object(
     'categories', (select coalesce(jsonb_agg(category order by category.name), '[]'::jsonb) from public.categories as category),
     'brands', (select coalesce(jsonb_agg(brand order by brand.name), '[]'::jsonb) from public.brands as brand),
-    'shops', (select coalesce(jsonb_agg(shop order by shop.name), '[]'::jsonb) from public.shops as shop where shop.is_open = true)
+    'shops', (select coalesce(jsonb_agg(shop order by shop.name), '[]'::jsonb) from public.shops as shop where shop.is_open = true and (select public.can_access_shop(shop.id)))
   );
 end;
 $$;
@@ -179,6 +239,7 @@ begin
   join public.categories as category on category.id = product.category_id
   join public.brands as brand on brand.id = product.brand_id
   join public.shops as shop on shop.id = product.shop_id
+  where (select public.can_access_shop(product.shop_id))
   order by product.created_at desc;
 end;
 $$;
@@ -199,7 +260,8 @@ begin
   return (
     select to_jsonb(product)
     from public.products as product
-    where product.id = product_id
+    where product.id = get_product.product_id
+      and (select public.can_manage_shop(product.shop_id))
   );
 end;
 $$;
@@ -229,6 +291,19 @@ declare
 begin
   if not (select public.can_manage_products()) then
     raise exception 'You do not have permission to save products';
+  end if;
+
+  if not (select public.can_manage_shop(product_shop_id)) then
+    raise exception 'You can only save products for your assigned shop';
+  end if;
+
+  if product_id is not null and not exists (
+    select 1
+    from public.products as product
+    where product.id = save_product.product_id
+      and (select public.can_manage_shop(product.shop_id))
+  ) then
+    raise exception 'You can only edit products for your assigned shop';
   end if;
 
   if trim(product_name) = '' or trim(product_sku) = '' then
@@ -283,7 +358,13 @@ begin
     raise exception 'You do not have permission to delete products';
   end if;
 
-  delete from public.products where id = product_id;
+  delete from public.products as product
+  where product.id = delete_product.product_id
+    and (select public.can_manage_shop(product.shop_id));
+
+  if not found then
+    raise exception 'You can only delete products for your assigned shop';
+  end if;
 end;
 $$;
 

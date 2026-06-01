@@ -91,7 +91,7 @@ function Sidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed md:relative w-64 h-screen flex flex-col bg-card border-r border-border z-40 transition-transform duration-300',
+          'fixed md:sticky md:top-0 w-64 h-screen shrink-0 flex flex-col bg-card border-r border-border z-40 transition-transform duration-300',
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         )}
       >

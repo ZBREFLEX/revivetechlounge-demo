@@ -37,6 +37,7 @@ function Products() {
   const [options, setOptions] = useState({ categories: [], shops: [] })
   const [canManage, setCanManage] = useState(false)
   const [canRecordSale, setCanRecordSale] = useState(false)
+  const [profile, setProfile] = useState(null)
   const [lowStockLevel, setLowStockLevel] = useState(5)
   const [currency, setCurrency] = useState('INR')
   const [searchTerm, setSearchTerm] = useState('')
@@ -56,13 +57,15 @@ function Products() {
   const loadProducts = async () => {
     setLoading(true)
     setError('')
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const [{ data, error: productError }, { data: optionData }, { data: manageAccess }, { data: saleAccess }, { data: storeSettings }] = await Promise.all([
+    const [{ data, error: productError }, { data: optionData }, { data: manageAccess }, { data: saleAccess }, { data: storeSettings }, { data: profileData }] = await Promise.all([
       supabase.rpc('list_products'),
       supabase.rpc('list_product_options'),
       supabase.rpc('can_manage_products'),
       supabase.rpc('can_record_sales'),
       supabase.rpc('get_store_settings'),
+      supabase.from('profiles').select('role, shop').eq('id', user?.id || '').maybeSingle(),
     ])
 
     if (productError) {
@@ -74,6 +77,7 @@ function Products() {
     setOptions(optionData || { categories: [], shops: [] })
     setCanManage(manageAccess === true)
     setCanRecordSale(saleAccess === true)
+    setProfile(profileData)
     setLowStockLevel(storeSettings?.low_stock_threshold || 5)
     setCurrency(storeSettings?.currency || 'INR')
     setLoading(false)
@@ -158,6 +162,15 @@ function Products() {
     style: 'currency',
     currency,
   }).format(Number(price))
+
+  const canManageProduct = (product) => canManage && (
+    ['super-admin', 'admin'].includes(profile?.role)
+    || (profile?.role === 'stock-manager' && profile.shop === product.shop_id)
+  )
+
+  const canSellProduct = (product) => canRecordSale
+    && profile?.role === 'staff'
+    && profile.shop === product.shop_id
 
   return (
     <div className="p-6 space-y-6">
@@ -251,9 +264,10 @@ function Products() {
                       <TableCell>
                         <div className="flex gap-2">
                           {canManage && <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/preview`)} aria-label={`Preview ${product.name}`}><Eye className="w-4 h-4" /></Button>}
-                          {canManage && <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/edit`)}><Edit className="w-4 h-4" /></Button>}
-                          {canManage && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteProduct(product)}><Trash2 className="w-4 h-4" /></Button>}
-                          {canRecordSale && <Button size="sm" variant="outline" onClick={() => openSaleDialog(product)} disabled={product.stock === 0}><ShoppingCart className="w-4 h-4" /> Sold Out</Button>}
+                          {canManageProduct(product) && <Button size="sm" variant="ghost" onClick={() => navigate(`/dashboard/products/${product.id}/edit`)}><Edit className="w-4 h-4" /></Button>}
+                          {canManageProduct(product) && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteProduct(product)}><Trash2 className="w-4 h-4" /></Button>}
+                          {canSellProduct(product) && <Button size="sm" variant="outline" onClick={() => openSaleDialog(product)} disabled={product.stock === 0}><ShoppingCart className="w-4 h-4" /> Sold Out</Button>}
+                          {canRecordSale && !canSellProduct(product) && <span className="text-xs text-muted-foreground">View only</span>}
                         </div>
                       </TableCell>
                     )}

@@ -60,7 +60,7 @@ function Topbar() {
   }
 
   return (
-    <div className="border-b border-border bg-card h-16 flex items-center justify-between px-6">
+    <div className="border-b border-border bg-card h-16 shrink-0 flex items-center justify-between px-6">
       {/* Left: Search Bar */}
       <div className="flex-1 max-w-md relative">
         <form onSubmit={handleSearchSubmit}>

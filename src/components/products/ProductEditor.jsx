@@ -117,16 +117,26 @@ function ProductEditor({ productId = null }) {
     const loadForm = async () => {
       setLoading(true)
       setError('')
+      const { data: { user } } = await supabase.auth.getUser()
 
-      const [{ data: optionData, error: optionsError }, productResult] = await Promise.all([
+      const [{ data: optionData, error: optionsError }, productResult, { data: profile }] = await Promise.all([
         supabase.rpc('list_product_options'),
         productId ? supabase.rpc('get_product', { product_id: productId }) : Promise.resolve({ data: null }),
+        supabase.from('profiles').select('role, shop').eq('id', user?.id || '').maybeSingle(),
       ])
 
       if (optionsError) {
         setError(optionsError.message)
       } else {
-        setOptions(optionData || { categories: [], brands: [], shops: [] })
+        const loadedOptions = optionData || { categories: [], brands: [], shops: [] }
+        const availableShops = profile?.role === 'stock-manager'
+          ? loadedOptions.shops.filter((shop) => shop.id === profile.shop)
+          : loadedOptions.shops
+
+        setOptions({ ...loadedOptions, shops: availableShops })
+        if (!productId && profile?.role === 'stock-manager' && profile.shop) {
+          setForm((current) => ({ ...current, shop_id: profile.shop }))
+        }
       }
 
       if (productId) {

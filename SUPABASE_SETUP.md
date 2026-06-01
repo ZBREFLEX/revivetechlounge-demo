@@ -99,6 +99,13 @@ adjust stock. Approved staff can only use **Sold Out** on the Products page,
 which asks for the customer's name, phone, and an optional note before removing
 one unit and recording the sale in inventory history.
 
+For an existing installation, run `supabase/setup-shop-scoped-stock-managers.sql`
+afterward. Stock managers can view products and inventory across all shops, but
+can only add, edit, delete, or adjust stock for their assigned shop. Approved
+staff can also view products and inventory across shops, but can only mark items
+as sold for their assigned shop. Admins and super admins continue to manage
+every shop.
+
 ## Set up sales reporting
 
 After setting up the stock manager role, run `supabase/setup-sales-reporting.sql`

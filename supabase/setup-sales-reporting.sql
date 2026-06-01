@@ -35,6 +35,7 @@ begin
   join public.products as product on product.id = movement.product_id
   left join public.profiles as profile on profile.id = movement.created_by
   where movement.customer_name is not null
+    and (select public.can_access_shop(product.shop_id))
   order by movement.created_at desc;
 end;
 $$;

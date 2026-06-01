@@ -64,6 +64,25 @@ $$;
 revoke all on function public.can_manage_products() from public;
 grant execute on function public.can_manage_products() to authenticated;
 
+create or replace function public.can_sell_shop(target_shop_id text)
+returns boolean
+language sql
+stable
+security definer set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = (select auth.uid())
+      and approved = true
+      and role = 'staff'
+      and shop = target_shop_id
+  );
+$$;
+
+revoke all on function public.can_sell_shop(text) from public;
+grant execute on function public.can_sell_shop(text) to authenticated;
+
 create or replace function public.can_record_sales()
 returns boolean
 language sql
@@ -164,6 +183,7 @@ begin
   into current_stock
   from public.products as product
   where product.id = target_product_id
+    and (select public.can_sell_shop(product.shop_id))
   for update;
 
   if current_stock is null then

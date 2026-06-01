@@ -36,6 +36,7 @@ function Inventory() {
   const [movements, setMovements] = useState([])
   const [lowStockLevel, setLowStockLevel] = useState(5)
   const [canManage, setCanManage] = useState(false)
+  const [profile, setProfile] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterShop, setFilterShop] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -52,12 +53,14 @@ function Inventory() {
   const loadInventory = async () => {
     setLoading(true)
     setError('')
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const [{ data, error: inventoryError }, { data: movementData, error: movementError }, { data: manageAccess }, { data: storeSettings }] = await Promise.all([
+    const [{ data, error: inventoryError }, { data: movementData, error: movementError }, { data: manageAccess }, { data: storeSettings }, { data: profileData }] = await Promise.all([
       supabase.rpc('list_inventory'),
       supabase.rpc('list_inventory_movements'),
       supabase.rpc('can_manage_products'),
       supabase.rpc('get_store_settings'),
+      supabase.from('profiles').select('role, shop').eq('id', user?.id || '').maybeSingle(),
     ])
 
     if (inventoryError || movementError) {
@@ -75,6 +78,7 @@ function Inventory() {
 
     setMovements(movementData || [])
     setCanManage(manageAccess === true)
+    setProfile(profileData)
     setLowStockLevel(storeSettings?.low_stock_threshold || 5)
     setLoading(false)
   }
@@ -141,6 +145,11 @@ function Inventory() {
     if (stock <= 20) return { label: 'Medium', className: 'text-yellow-600' }
     return { label: 'High', className: 'text-green-600' }
   }
+
+  const canManageProduct = (product) => canManage && (
+    ['super-admin', 'admin'].includes(profile?.role)
+    || (profile?.role === 'stock-manager' && profile.shop === product.shop_id)
+  )
 
   return (
     <div className="p-6 space-y-6">
@@ -237,10 +246,12 @@ function Inventory() {
                         <TableCell className={status.className}>{status.label}</TableCell>
                         {canManage && (
                           <TableCell>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={() => openAdjustment(product, 1)} aria-label={`Add stock to ${product.name}`}><Plus className="w-4 h-4" /></Button>
-                              <Button size="sm" variant="outline" onClick={() => openAdjustment(product, -1)} disabled={product.stock === 0} aria-label={`Remove stock from ${product.name}`}><Minus className="w-4 h-4" /></Button>
-                            </div>
+                            {canManageProduct(product) ? (
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline" onClick={() => openAdjustment(product, 1)} aria-label={`Add stock to ${product.name}`}><Plus className="w-4 h-4" /></Button>
+                                <Button size="sm" variant="outline" onClick={() => openAdjustment(product, -1)} disabled={product.stock === 0} aria-label={`Remove stock from ${product.name}`}><Minus className="w-4 h-4" /></Button>
+                              </div>
+                            ) : <span className="text-xs text-muted-foreground">View only</span>}
                           </TableCell>
                         )}
                       </TableRow>
