@@ -110,6 +110,7 @@ function Settings() {
       {error && <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">{error}</div>}
       {message && <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm">{message}</div>}
       <form onSubmit={saveSettings} className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Store Information</CardTitle>
@@ -153,7 +154,7 @@ function Settings() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>This preference is saved only for your browser.</CardDescription>
@@ -171,6 +172,7 @@ function Settings() {
             </div>
           </CardContent>
         </Card>
+        </div>
 
         {isSuperAdmin && (
           <div className="flex gap-4">
