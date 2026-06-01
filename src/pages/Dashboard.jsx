@@ -4,6 +4,13 @@ import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Too
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,13 +31,35 @@ const emptyDashboard = {
 function Dashboard() {
   const [dashboard, setDashboard] = useState(emptyDashboard)
   const [loading, setLoading] = useState(true)
+  const [salesLoading, setSalesLoading] = useState(true)
+  const [salesPeriod, setSalesPeriod] = useState('days')
+  const [salesData, setSalesData] = useState([])
   const [error, setError] = useState('')
+
+  const loadSalesChart = async (period = salesPeriod) => {
+    setSalesLoading(true)
+
+    const { data, error: salesError } = await supabase.rpc('get_sales_chart', {
+      sales_period: period,
+    })
+
+    if (salesError) {
+      setError(salesError.message)
+    } else {
+      setSalesData(data || [])
+    }
+
+    setSalesLoading(false)
+  }
 
   const loadDashboard = async () => {
     setLoading(true)
     setError('')
 
-    const { data, error: dashboardError } = await supabase.rpc('get_dashboard_summary')
+    const [{ data, error: dashboardError }] = await Promise.all([
+      supabase.rpc('get_dashboard_summary'),
+      loadSalesChart(),
+    ])
 
     if (dashboardError) {
       setError(dashboardError.message)
@@ -44,6 +73,18 @@ function Dashboard() {
   useEffect(() => {
     loadDashboard()
   }, [])
+
+  const changeSalesPeriod = async (period) => {
+    setSalesPeriod(period)
+    setError('')
+    await loadSalesChart(period)
+  }
+
+  const salesChartTitles = {
+    days: 'Sales - Last 7 Days',
+    months: 'Sales - Last 12 Months',
+    years: 'Sales - Last 5 Years',
+  }
 
   const stats = [
     { label: 'Total Products', value: dashboard.stats.total_products || 0, bg: 'bg-blue-50 dark:bg-blue-950' },
@@ -129,17 +170,31 @@ function Dashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Sales - Last 7 Days</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <CardTitle>{salesChartTitles[salesPeriod]}</CardTitle>
+          <Select value={salesPeriod} onValueChange={changeSalesPeriod}>
+            <SelectTrigger className="w-[140px]" aria-label="Sales chart period"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="days">Days</SelectItem>
+              <SelectItem value="months">Months</SelectItem>
+              <SelectItem value="years">Years</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={dashboard.sales_data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line type="monotone" dataKey="sales" stroke="#16a34a" strokeWidth={3} name="Sold Products" />
-            </LineChart>
-          </ResponsiveContainer>
+          {salesLoading ? (
+            <p className="h-[300px] flex items-center justify-center text-muted-foreground">Loading sales chart...</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Line type="monotone" dataKey="sales" stroke="#16a34a" strokeWidth={3} name="Sold Products" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 

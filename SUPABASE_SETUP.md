@@ -112,6 +112,9 @@ After setting up the stock manager role, run `supabase/setup-sales-reporting.sql
 once. It adds the seven-day sales line graph to the Dashboard and the protected
 **Customers** page for approved staff, admins, and stock managers.
 
+For an existing installation, run `supabase/setup-sales-chart-filter.sql` once.
+It adds the Dashboard sales graph filter for daily, monthly, and yearly views.
+
 ## Set up user deletion and staff customer access
 
 Run `supabase/setup-user-delete-and-staff-customers.sql` once. It adds the
