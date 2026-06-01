@@ -25,7 +25,7 @@ const navItems = [
   { label: 'Shops', href: '/dashboard/shops', icon: Store },
   { label: 'Customers', href: '/dashboard/customers', icon: ContactRound, customersOnly: true },
   { label: 'User Access', href: '/dashboard/staff', icon: Users, superAdminOnly: true },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings, superAdminOnly: true },
 ]
 
 function Sidebar() {

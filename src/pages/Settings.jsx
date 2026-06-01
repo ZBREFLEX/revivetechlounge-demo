@@ -95,7 +95,8 @@ function Settings() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <div className="w-full p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Settings</h1>
@@ -108,8 +109,6 @@ function Settings() {
 
       {error && <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">{error}</div>}
       {message && <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm">{message}</div>}
-      {!loading && !isSuperAdmin && <div className="p-3 bg-muted border rounded-lg text-sm text-muted-foreground">Only a super admin can change shared store settings. Your appearance preference is still available below.</div>}
-
       <form onSubmit={saveSettings} className="space-y-6">
         <Card>
           <CardHeader>
@@ -180,6 +179,7 @@ function Settings() {
           </div>
         )}
       </form>
+      </div>
     </div>
   )
 }

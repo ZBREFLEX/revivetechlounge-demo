@@ -17,12 +17,25 @@ function Topbar() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [products, setProducts] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
-    supabase?.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase?.auth.getUser().then(async ({ data }) => {
+      setUser(data.user)
+
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved')
+          .eq('id', data.user.id)
+          .single()
+
+        setIsSuperAdmin(profile?.role === 'super-admin' && profile?.approved === true)
+      }
+    })
 
     supabase?.rpc('list_products').then(({ data }) => {
       setProducts(data || [])
@@ -143,7 +156,7 @@ function Topbar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/dashboard/settings')}>Settings</DropdownMenuItem>
+            {isSuperAdmin && <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/dashboard/settings')}>Settings</DropdownMenuItem>}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
