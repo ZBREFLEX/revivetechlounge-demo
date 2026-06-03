@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="REVIVETECHLOUNGE">
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  <rect x="56" y="56" width="400" height="400" rx="88" fill="#ffffff"/>
+  <rect x="78" y="78" width="356" height="356" rx="72" fill="#050505"/>
+  <text x="256" y="244" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="116" font-weight="800">RTL</text>
+  <text x="256" y="316" text-anchor="middle" fill="#f5f5f5" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="4">ADMIN</text>
+</svg>
